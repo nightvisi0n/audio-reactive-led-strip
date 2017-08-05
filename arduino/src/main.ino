@@ -4,17 +4,11 @@
 #include <Hash.h>
 #include <WiFiUdp.h>
 #include "ws2812_i2s.h"
-
-// Set to the number of LEDs in your LED strip
-#define NUM_LEDS 60
-// Maximum number of packets to hold in the buffer. Don't change this.
-#define BUFFER_LEN 1024
-// Toggles FPS output (1 = print FPS over serial, 0 = disable output)
-#define PRINT_FPS 1
+#include <ESP8266mDNS.h>
+#include <ArduinoOTA.h>
+#include "config.h"
 
 // Wifi and socket settings
-const char* ssid     = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
 unsigned int localPort = 7777;
 char packetBuffer[BUFFER_LEN];
 
@@ -23,30 +17,27 @@ static WS2812 ledstrip;
 static Pixel_t pixels[NUM_LEDS];
 WiFiUDP port;
 
-// Network information
-// IP must match the IP in config.py
-IPAddress ip(192, 168, 0, 150);
-// Set gateway to your router's gateway
-IPAddress gateway(192, 168, 0, 1);
-IPAddress subnet(255, 255, 255, 0);
-
 void setup() {
-    Serial.begin(115200);
-    WiFi.config(ip, gateway, subnet);
-    WiFi.begin(ssid, password);
-    Serial.println("");
-    // Connect to wifi and print the IP address over serial
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(wifi_ssid, wifi_password);
+
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
-        Serial.print(".");
     }
-    Serial.println("");
-    Serial.print("Connected to ");
-    Serial.println(ssid);
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
+
     port.begin(localPort);
     ledstrip.init(NUM_LEDS);
+
+    // Port defaults to 8266
+    // ArduinoOTA.setPort(8266);
+
+    // Hostname defaults to esp8266-[ChipID]
+    ArduinoOTA.setHostname("esp8266");
+
+    // No authentication by default
+    ArduinoOTA.setPassword(ota_password);
+
+    ArduinoOTA.begin();
 }
 
 uint8_t N = 0;
@@ -56,6 +47,8 @@ uint8_t N = 0;
 #endif
 
 void loop() {
+    ArduinoOTA.handle();
+
     // Read data over socket
     int packetSize = port.parsePacket();
     // If packets have been received, interpret the command
@@ -67,7 +60,7 @@ void loop() {
             pixels[N].R = (uint8_t)packetBuffer[i+1];
             pixels[N].G = (uint8_t)packetBuffer[i+2];
             pixels[N].B = (uint8_t)packetBuffer[i+3];
-        } 
+        }
         ledstrip.show(pixels);
         #if PRINT_FPS
             fpsCounter++;
@@ -78,6 +71,6 @@ void loop() {
             secondTimer = millis();
             Serial.printf("FPS: %d\n", fpsCounter);
             fpsCounter = 0;
-        }   
+        }
     #endif
 }

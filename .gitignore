@@ -1,3 +1,13 @@
+### Platformio
+
+.pioenvs
+.piolibdeps
+
+config.h
+platformio.ini
+
+### Windows
+
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
