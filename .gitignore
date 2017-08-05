@@ -6,6 +6,8 @@
 config.h
 platformio.ini
 
+config.py
+
 ### Windows
 
 # Windows image file caches
